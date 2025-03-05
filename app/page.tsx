@@ -1,137 +1,229 @@
-interface Post {
-  id: string;
-  author: {
-    name: string;
-    username: string;
-    profilePicture: string;
-  };
-  timestamp: string;
-  content: {
-    text?: string;
-    image?: string;
-  };
-  stats: {
-    likes: number;
-    comments: number;
-    reposts: number;
-  };
-}
+'use client'
+import { baseSepolia } from "viem/chains";
+import { useCoinbaseProvider } from "./CoinbaseProvider";
+import PostCard from "./components/PostCard";
+import Hero from "./components/Hero";
+import { Post } from "./types";
+import { useEffect, useMemo, useState } from "react";
+import WalletFooter from "./components/WalletFooter";
+import { Hex } from "viem";
+import toast, { Toaster } from 'react-hot-toast';
+import SettingsPanel from "./components/SettingsPanel";
+import { useMediaQuery } from 'react-responsive';
+import disperseFaucet from "./utils/faucet";
 
-const mockPosts: Post[] = [
-  {
-    id: '1',
-    author: {
-      name: 'John Doe',
-      username: '@johndoe',
-      profilePicture: 'https://placecats.com/100/100',
-    },
-    timestamp: '2h ago',
-    content: {
-      text: 'Just launched my new project! 🚀 Really excited to share it with everyone.',
-      image: 'https://picsum.photos/seed/1/600/400',
-    },
-    stats: {
-      likes: 142,
-      comments: 28,
-      reposts: 12,
-    },
-  },
-  {
-    id: '2',
-    author: {
-      name: 'Jane Smith',
-      username: '@janesmith',
-      profilePicture: 'https://placecats.com/100/100',
-    },
-    timestamp: '4h ago',
-    content: {
-      text: 'Beautiful day for coding! ☀️ #coding #developer',
-    },
-    stats: {
-      likes: 89,
-      comments: 15,
-      reposts: 5,
-    },
-  },
-];
+export default function Home() {
+  const { address, subaccount, fetchAddressBalance, publicClient, createLinkedAccount, addressBalanceWei, currentChain, switchChain, spendPermissionSignature, signSpendPermission, spendPermissionRequestedAllowance } = useCoinbaseProvider();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isTipping, setIsTipping] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isFaucetLoading, setIsFaucetLoading] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  
 
-function PostCard({ post }: { post: Post }) {
-  return (
-    <div className="border border-gray-200 p-4 rounded-lg mb-4">
-      <div className="flex items-start space-x-3">
-        {/* Author Profile Picture */}
-        <img
-          src={post.author.profilePicture}
-          alt={post.author.name}
-          className="w-12 h-12 rounded-full"
-        />
-        
-        <div className="flex-1">
-          {/* Author Info & Timestamp */}
-          <div className="flex items-center space-x-2">
-            <span className="font-bold">{post.author.name}</span>
-            <span className="text-gray-500">{post.author.username}</span>
-            <span className="text-gray-500">·</span>
-            <span className="text-gray-500">{post.timestamp}</span>
+  useEffect(() => {
+    const fetchPosts = async () => {
+      const response = await fetch('/api/posts');
+      const data = await response.json();
+      setPosts(data.posts);
+    };
+    fetchPosts();
+  }, []);
+
+  const isAddressFunded = useMemo(() => {
+    return addressBalanceWei > BigInt(0);
+  }, [addressBalanceWei]);
+  
+  const renderContent = () => {
+    if (Number(spendPermissionRequestedAllowance) === 0 || spendPermissionRequestedAllowance === '') {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50">
+          <Hero />
+          <div>
+            Please set a valid daily spend amount in the settings panel.
           </div>
-          
-          {/* Post Content */}
-          <div className="mt-2">
-            {post.content.text && (
-              <p className="text-gray-800 mb-2">{post.content.text}</p>
-            )}
-            {post.content.image && (
-              <img
-                src={post.content.image}
-                alt="Post content"
-                className="rounded-lg w-full"
-              />
-            )}
+        </div>
+      );
+    }
+
+    if (!address) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50">
+          <Hero />
+          <button 
+            onClick={() => createLinkedAccount()}
+            className="px-6 py-3 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            style={{ backgroundColor: '#0052FF' }}
+          >
+            Connect
+          </button>
+        </div>
+      );
+    } else if (!isAddressFunded) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50">
+          <Toaster position="top-right" />
+          <Hero />
+          <div className="text-lg text-gray-700 mb-4 text-center px-6">
+            It doesn&apos;t seem like you have any Base Sepolia ETH 🤔... <br/> Let&apos;s get you funded!
           </div>
-          
-          {/* Engagement Stats */}
-          <div className="flex items-center space-x-6 mt-4 text-gray-500">
-            <button className="flex items-center space-x-2 hover:text-blue-500">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              <span>{post.stats.likes}</span>
-            </button>
-            
-            <button className="flex items-center space-x-2 hover:text-blue-500">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span>{post.stats.comments}</span>
-            </button>
-            
-            <button className="flex items-center space-x-2 hover:text-green-500">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span>{post.stats.reposts}</span>
-            </button>
-            
-            <button className="flex items-center space-x-2 hover:text-yellow-500">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>Tip</span>
+          <button 
+            onClick={async () => {
+              setIsFaucetLoading(true);
+              try {
+                const { hash } = await disperseFaucet({ to: address });
+                await publicClient.waitForTransactionReceipt({ hash });
+                await fetchAddressBalance();
+              } catch (error) {
+                console.error('error dispersing faucet', error);
+                toast.error(
+                  <div className="max-w-[280px] break-words">
+                    <p>Error requesting funds. Please try again later. If issues continue to persist, please use the </p>
+                    <a 
+                      href="https://portal.cdp.coinbase.com/products/faucet" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Coinbase CDP Faucet
+                    </a>
+                    <p className="mt-2">Your wallet address:</p>
+                    <code className="bg-gray-100 px-2 py-1 rounded block overflow-x-auto">{address}</code>
+                  </div>
+                , {
+                  duration: 20000,
+                });
+              } finally {
+                setIsFaucetLoading(false);
+              }
+            }}
+            disabled={isFaucetLoading}
+            className={`px-6 py-3 bg-indigo-600 text-white rounded-lg transition-colors ${
+              isFaucetLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700'
+            }`}
+          >
+            {isFaucetLoading ? 'Requesting...' : 'Request funds'}
+          </button>
+          <div className="mt-4">
+            <button className={`px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors
+            ${isFaucetLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700'}`} 
+              onClick={async () => {
+                await fetchAddressBalance();
+              }}
+              disabled={isFaucetLoading}
+              >
+              Refresh my balance
             </button>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
+      );
+    }
 
-export default function Home() {
+    if (currentChain?.id !== baseSepolia.id) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50">
+          <Hero />
+          <button 
+            onClick={() => switchChain()}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Switch to Base Sepolia
+          </button>
+        </div>
+      );
+    }
+
+    if (!spendPermissionSignature) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50">
+          <Hero />
+          <div className="text-lg text-gray-700 mb-4 text-center px-6">
+          {`Granting permission for Coinbase Smart wallet demo to spend ${spendPermissionRequestedAllowance} ETH per day...`}
+          </div>
+          <button 
+            onClick={() => signSpendPermission({
+              allowance: '0x71afd498d0000',// 0.002 ETH per day (~$5)
+              period: 86400, // seconds in a day
+              start: Math.floor(Date.now() / 1000), // unix timestamp
+              end: Math.floor(Date.now() / 1000 + 30 * 24 * 60 * 60), // one month from now
+              salt: '0x1',
+              extraData: "0x" as Hex,
+            })}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Grant permission
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <Toaster position="top-right" />
+        <Hero />
+        <div className="max-w-2xl mx-auto py-8 px-4">
+          {posts.map((post) => (
+            <PostCard 
+              key={post.id} 
+              post={post} 
+              isTipping={isTipping}
+              setIsTipping={setIsTipping}
+            />
+          ))}
+        </div>
+        <WalletFooter />
+      </div>
+    );
+  };
+
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">Social Feed</h1>
-      {mockPosts.map((post) => (
-        <PostCard key={post.id} post={post} />
-      ))}
+    <div className="flex flex-col">
+      {!bannerDismissed && (
+        <div className="bg-blue-600 text-white p-3 flex justify-between items-center">
+          <div className="flex-1 text-center">
+            Interested in building with Sub Accounts? 
+            <a 
+              href="https://docs.base.org/identity/smart-wallet/guides/sub-accounts/overview" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline ml-1 font-medium"
+            >
+              Check out our docs here
+            </a>
+          </div>
+          <button 
+            onClick={() => setBannerDismissed(true)}
+            className="text-white flex-shrink-0 hover:bg-blue-700 rounded-full p-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      
+      <div className="flex flex-1">
+        {(!isMobile || isSettingsOpen) && (
+          <div className={`${isMobile ? 'fixed inset-0 z-50 bg-white' : 'sticky top-0 h-screen'}`}>
+            <SettingsPanel 
+              isLoggedIn={!!(address || subaccount)}
+              isMobile={isMobile}
+              onClose={() => setIsSettingsOpen(false)}
+            />
+          </div>
+        )}
+        
+        <div className="flex-1">
+          {isMobile && (
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="fixed top-4 right-4 z-40 p-2 bg-white rounded-full shadow-lg"
+            >
+              ⚙️
+            </button>
+          )}
+          {renderContent()}
+        </div>
+      </div>
     </div>
   );
 }

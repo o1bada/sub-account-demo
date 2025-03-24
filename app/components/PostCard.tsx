@@ -73,7 +73,7 @@ export default function PostCard({ post, isTipping, setIsTipping }: PostCardProp
       activeTipToasts.delete(toastId);
       
       try {
-        const txHash = await sendCallWithSpendPermission([
+        const opHash = await sendCallWithSpendPermission([
           {
             to: (post.author.verified_addresses.eth_addresses[0] || post.author.custody_address) as `0x${string}`,
             data: '0x',
@@ -81,26 +81,26 @@ export default function PostCard({ post, isTipping, setIsTipping }: PostCardProp
           }
         ], tipAmountWei);
 
-        const getExplorerUrl = (txHash: string) => {
+        const getExplorerUrl = (opHash: string) => {
           if (!currentChain) return '#';
-          return `${currentChain.blockExplorers?.default.url}/tx/${txHash}`;
+          return `https://base-sepolia.blockscout.com/op/${opHash}`;
         };
 
         toast.success(
           <div>
             Successfully tipped @{post.author.username}!
             <a 
-              href={getExplorerUrl(txHash)}
+              href={getExplorerUrl(opHash)}
               target="_blank"
               rel="noopener noreferrer" 
               className="block text-blue-500 hover:underline"
             >
               View transaction
-            </a>
+            </a>(This may take a few seconds to update)
           </div>,
           { duration: 5000 }
         );
-        console.log('Tip sent:', getExplorerUrl(txHash));
+        console.log('Tip sent:', getExplorerUrl(opHash));
       } catch (error) {
         toast.error('Failed to send tip');
         console.error('Tip error:', error);

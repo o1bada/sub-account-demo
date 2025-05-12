@@ -3,6 +3,7 @@ import { timeAgo } from '../utils/timeAgo';
 import { toast } from 'react-hot-toast';
 import { useCoinbaseProvider } from '../CoinbaseProvider';
 import { useEthUsdPrice } from '../hooks/useEthUsdPrice';
+import { toHex } from "viem";
 
 const activeTipToasts = new Set<string>();
 
@@ -43,7 +44,7 @@ export default function PostCard({ post, isTipping, setIsTipping }: PostCardProp
             <div 
               className="h-full bg-blue-500 rounded-full"
               style={{
-                animation: 'shrinkProgress 4s linear forwards',
+                animation: 'shrinkProgress 2s linear forwards',
                 transformOrigin: 'left',
               }}
             />
@@ -60,7 +61,7 @@ export default function PostCard({ post, isTipping, setIsTipping }: PostCardProp
           `}</style>
         </div>
       ),
-      { duration: 4000 }
+      { duration: 2000 }
     );
 
     activeTipToasts.add(toastId);
@@ -77,7 +78,7 @@ export default function PostCard({ post, isTipping, setIsTipping }: PostCardProp
           {
             to: (post.author.verified_addresses.eth_addresses[0] || post.author.custody_address) as `0x${string}`,
             data: '0x',
-            value: tipAmountWei.toString(),
+            value: toHex(tipAmountWei),
           }
         ], tipAmountWei);
 
@@ -98,7 +99,7 @@ export default function PostCard({ post, isTipping, setIsTipping }: PostCardProp
               View transaction
             </a>(This may take a few seconds to update)
           </div>,
-          { duration: 5000 }
+          { duration: 2000 }
         );
         console.log('Tip sent:', getExplorerUrl(opHash));
       } catch (error) {
@@ -107,7 +108,7 @@ export default function PostCard({ post, isTipping, setIsTipping }: PostCardProp
       } finally {
         setIsTipping(false);
       }
-    }, 4000);
+    }, 2000);
   };
 
   return (

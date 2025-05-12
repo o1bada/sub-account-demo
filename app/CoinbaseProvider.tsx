@@ -95,7 +95,6 @@ async function handleCreateLinkedAccount(provider: ProviderInterface,
   return {
     address: response?.accounts[0].address,
     subAccount: response?.accounts[0].capabilities?.addSubAccount?.address,
-    spendPermission: response?.accounts[0].capabilities?.spendPermissions,
   };
 }
 async function handleSwitchChain(provider: ProviderInterface) {
@@ -236,8 +235,6 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
       setAddress(createLinkedAccountResp.address as Address);
       setSubaccount(createLinkedAccountResp.subAccount as Address);
 
-      setSpendPermissionSignature(createLinkedAccountResp.spendPermission.signature as string);
-      setSpendPermission(createLinkedAccountResp.spendPermission.permission as SpendPermission);
   }, [provider, spendPermissionRequestedAllowance, activeSigner, signerType, setSpendPermissionSignature, setSpendPermission]);
 
     const sendCallWithSpendPermission = useCallback(async (calls: any[], txValueWei: bigint): Promise<string> => {
@@ -257,6 +254,7 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
           functionName: 'approveWithSignature',
           args: [spendPermission, spendPermissionSignature],
           data: '0x',
+          value: '0x0',
       },
       {
           to: SPEND_PERMISSION_MANAGER_ADDRESS,
@@ -264,16 +262,20 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
           functionName: 'spend',
           args: [spendPermission, txValueWei.toString()],
           data: '0x',
+          value: '0x0',
       },
        ...calls
       ];
 
+      if (!currentChain) {
+        throw new Error('currentChain is required');
+      }
       try {
         const response = await provider.request({
           method: 'wallet_sendCalls',
           params: [
             {
-              chainId: currentChain?.id,
+              chainId: toHex(currentChain.id),
               calls: batchCalls,
               from: subaccount,
               version: '1',
@@ -284,8 +286,9 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
               }
             }   
         ]});
+
         await refreshPeriodSpend();
-        return response as string;
+        return (response as string).replace('0000000000000000000000000000000000000000000000000000000000014a34', '');
       } catch (error) {
         if (error?.code === -32603 && error?.message?.includes('account owner not found')) {
           console.debug('signer not found in list of current owners, adding as owner');

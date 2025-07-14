@@ -84,7 +84,7 @@ async function handleCreateLinkedAccount(provider: ProviderInterface,
             type: 'create',
             keys: [{
               type: signerType === 'browser' ? 'webauthn-p256' : 'address',
-              key: activeSigner,
+              publicKey: activeSigner,
             }]   
           }
         },
@@ -94,7 +94,7 @@ async function handleCreateLinkedAccount(provider: ProviderInterface,
   })) as WalletConnectResponse;
   return {
     address: response?.accounts[0].address,
-    subAccount: response?.accounts[0].capabilities?.addSubAccount?.address,
+    subAccount: response?.accounts[0].capabilities?.subAccounts?.[0]?.address,
   };
 }
 async function handleSwitchChain(provider: ProviderInterface) {
@@ -286,6 +286,12 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
               }
             }   
         ]});
+
+        const callStatus = await provider.request({
+          method: 'wallet_getCallsStatus',
+          params: [response],
+        })
+        console.log('callStatus', callStatus);
 
         await refreshPeriodSpend();
         return (response as string).replace('0000000000000000000000000000000000000000000000000000000000014a34', '');

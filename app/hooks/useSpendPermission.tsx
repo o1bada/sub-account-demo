@@ -63,6 +63,7 @@ export default function useSpendPermission({
           salt,
           extraData
         }
+        
         const signature = await provider.request({
           method: 'eth_signTypedData_v4',
           params: [

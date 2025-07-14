@@ -44,7 +44,7 @@ export default function PostCard({ post, isTipping, setIsTipping }: PostCardProp
             <div 
               className="h-full bg-blue-500 rounded-full"
               style={{
-                animation: 'shrinkProgress 2s linear forwards',
+                animation: 'shrinkProgress 0.5s linear forwards',
                 transformOrigin: 'left',
               }}
             />
@@ -61,7 +61,7 @@ export default function PostCard({ post, isTipping, setIsTipping }: PostCardProp
           `}</style>
         </div>
       ),
-      { duration: 2000 }
+      { duration: 800 }
     );
 
     activeTipToasts.add(toastId);
@@ -108,7 +108,7 @@ export default function PostCard({ post, isTipping, setIsTipping }: PostCardProp
       } finally {
         setIsTipping(false);
       }
-    }, 2000);
+    }, 0);
   };
 
   return (

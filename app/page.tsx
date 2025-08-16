@@ -11,9 +11,11 @@ import toast, { Toaster } from 'react-hot-toast';
 import SettingsPanel from "./components/SettingsPanel";
 import { useMediaQuery } from 'react-responsive';
 import disperseFaucet from "./utils/faucet";
-
+import { usePrivy } from '@privy-io/react-auth';
+ 
 export default function Home() {
-  const { address, subaccount, fetchAddressBalance, publicClient, createLinkedAccount, addressBalanceWei, currentChain, switchChain, spendPermissionSignature, signSpendPermission, spendPermissionRequestedAllowance } = useCoinbaseProvider();
+  const { address, subaccount, fetchAddressBalance, publicClient, createLinkedAccount, addressBalanceWei, currentChain, switchChain, spendPermissionSignature, signSpendPermission, spendPermissionRequestedAllowance, signerType } = useCoinbaseProvider();
+  const { login, authenticated } = usePrivy();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isTipping, setIsTipping] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -21,7 +23,7 @@ export default function Home() {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const isMobile = useMediaQuery({ maxWidth: 768 });
   
-
+ 
   useEffect(() => {
     const fetchPosts = async () => {
       const response = await fetch('/api/posts');
@@ -30,7 +32,7 @@ export default function Home() {
     };
     fetchPosts();
   }, []);
-
+ 
   const isAddressFunded = useMemo(() => {
     return addressBalanceWei > BigInt(0);
   }, [addressBalanceWei]);
@@ -46,11 +48,20 @@ export default function Home() {
         </div>
       );
     }
-
+ 
     if (!address) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50">
           <Hero />
+          {signerType === 'privy' && !authenticated && (
+            <button 
+              onClick={() => login()}
+              className="px-6 py-3 text-white rounded-lg hover:bg-indigo-700 transition-colors mb-3"
+              style={{ backgroundColor: '#111827' }}
+            >
+              Login with Privy
+            </button>
+          )}
           <button 
             onClick={() => createLinkedAccount()}
             className="px-6 py-3 text-white rounded-lg hover:bg-indigo-700 transition-colors"
@@ -119,7 +130,7 @@ export default function Home() {
         </div>
       );
     }
-
+ 
     if (currentChain?.id !== baseSepolia.id) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -133,7 +144,7 @@ export default function Home() {
         </div>
       );
     }
-
+ 
     if (!spendPermissionSignature) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -157,7 +168,7 @@ export default function Home() {
         </div>
       );
     }
-
+ 
     return (
       <div>
         <Toaster position="top-right" />
@@ -176,7 +187,7 @@ export default function Home() {
       </div>
     );
   };
-
+ 
   return (
     <div className="flex flex-col">
       {!bannerDismissed && (

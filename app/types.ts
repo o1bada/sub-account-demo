@@ -89,11 +89,12 @@ export interface Post {
   };
   
   export type WalletConnectResponseCapabilities = {
-    signInWithEthereum?: SignInWithEthereumCapabilityResponse | any;
+    signInWithEthereum?: SignInWithEthereumCapabilityResponse | Record<string, unknown>;
     addAddress?: AddAddressCapabilityResponse;
-    spendPermissions?: SpendPermissionsCapabilityResponse | any;
+    spendPermissions?: SpendPermissionsCapabilityResponse | Record<string, unknown>;
     getAppAccounts?: GetAppAccountsCapabilityResponse;
     getSpendPermissions?: GetSpendPermissionsCapabilityResponse;
+    subAccounts?: { address: Address }[];
   };
   
   export type WalletConnectAccountResponse = {

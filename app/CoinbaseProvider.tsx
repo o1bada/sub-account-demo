@@ -1,8 +1,8 @@
 'use client';
 import { getCryptoKeyAccount, ProviderInterface, removeCryptoKey } from "@coinbase/wallet-sdk";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Address, Chain, createPublicClient, createWalletClient, custom, decodeAbiParameters, encodeFunctionData, Hex, http, parseEther, toHex, WalletClient } from "viem";
-import { baseSepolia } from "viem/chains";
+import { Address, Chain, createPublicClient, createWalletClient, custom, decodeAbiParameters, encodeFunctionData, Hex, http, parseEther, toHex, WalletClient, type PublicClient as ViemPublicClient } from "viem";
+import { base } from "viem/chains";
 import { cbswAbi, spendPermissionManagerAbi } from "./abi";
 import { Signer, SignerType, SpendPermission, WalletConnectResponse } from "./types";
 import { getTurnkeyAccount } from "./utils/turnkey";
@@ -15,7 +15,7 @@ import { getPrivyAccount } from "./utils/privy";
 type CoinbaseContextType = {
     provider: ProviderInterface | null;
     walletClient: WalletClient | null;
-    publicClient: any | null;
+    publicClient: ViemPublicClient | null;
     address: Address | null;
     addressBalanceWei: bigint;
     connect: () => void;
@@ -25,8 +25,8 @@ type CoinbaseContextType = {
     disconnect: () => Promise<void>;
     spendPermission: object | null;
     spendPermissionSignature: string | null;
-    signSpendPermission: (spendPermission: SpendPermission) => Promise<string>;
-    sendCallWithSpendPermission: (calls: any[], txValueWei: bigint) => Promise<string>;
+    signSpendPermission: (spendPermission: { allowance: string; period: string; start: string; end: string; salt: string; extraData: string; }) => Promise<string>;
+    sendCallWithSpendPermission: (calls: unknown[], txValueWei: bigint) => Promise<string>;
     remainingSpend: bigint | null;
     signerType: SignerType;
     setSignerType: (signerType: SignerType) => void;
@@ -103,7 +103,7 @@ async function handleSwitchChain(provider: ProviderInterface) {
         method: 'wallet_switchEthereumChain',
         params: [
           {
-            chainId: `0x${baseSepolia.id.toString(16)}`
+            chainId: `0x${base.id.toString(16)}`
           }
         ],
     });
@@ -129,16 +129,16 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
     const [subaccount, setSubaccount] = useState<Address | null>(null);
     const [address, setAddress] = useState<Address | null>(null);
     const [addressBalanceWei, setAddressBalanceWei] = useState<bigint>(BigInt(0));
-    const [currentChain] = useState<Chain | null>(baseSepolia);
+    const [currentChain] = useState<Chain | null>(base);
     const [signerType, setSignerType] = useState<SignerType>('browser');
     const [activeSigner, setActiveSigner] = useState<Hex | null>(null);
     const { provider } = useCoinbaseSDK({
-      chainId: baseSepolia.id,
+      chainId: base.id,
       getSignerFunc: getSignerFunc(signerType)
     });
 
     const publicClient = useMemo(() => createPublicClient({
-      chain: baseSepolia,
+      chain: base,
       transport: http(),
     }), []);
 
@@ -184,7 +184,7 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
     const walletClient = useMemo(() => {
       if (!provider) return null;
       return createWalletClient({
-        chain: baseSepolia,
+        chain: base,
         transport: custom({
           async request({ method, params }) {
             const response = await provider.request({ method, params });
@@ -238,9 +238,9 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
       setAddress(createLinkedAccountResp.address as Address);
       setSubaccount(createLinkedAccountResp.subAccount as Address);
 
-  }, [provider, spendPermissionRequestedAllowance, activeSigner, signerType, setSpendPermissionSignature, setSpendPermission]);
+  }, [provider, spendPermissionRequestedAllowance, activeSigner, signerType]);
 
-    const sendCallWithSpendPermission = useCallback(async (calls: any[], txValueWei: bigint): Promise<string> => {
+    const sendCallWithSpendPermission = useCallback(async (calls: unknown[], txValueWei: bigint): Promise<string> => {
       if (!provider || !spendPermissionSignature || !activeSigner) {
         throw new Error('provider and spendPermissionSignature and activeSigner are required');
       }
@@ -267,7 +267,7 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
           data: '0x',
           value: '0x0',
       },
-       ...calls
+       ...(calls as any[])
       ];
 
       if (!currentChain) {
@@ -299,7 +299,8 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
         await refreshPeriodSpend();
         return (response as string).replace('0000000000000000000000000000000000000000000000000000000000014a34', '');
       } catch (error) {
-        if (error?.code === -32603 && error?.message?.includes('account owner not found')) {
+        const e = error as { code?: number; message?: string };
+        if (e?.code === -32603 && e?.message?.includes('account owner not found')) {
           console.debug('signer not found in list of current owners, adding as owner');
           let args;
           if (signerType === 'browser') {
@@ -316,7 +317,7 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
                 {
                   version: 1,
                   from: address,
-                  chainId: toHex(baseSepolia.id),
+                  chainId: toHex(base.id),
                   calls: [
                     {
                       to: subaccount,
@@ -363,7 +364,7 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
         spendPermission, spendPermissionSignature, signSpendPermission, sendCallWithSpendPermission,
         remainingSpend, spendPermissionRequestedAllowance, setSpendPermissionRequestedAllowance,
         fetchAddressBalance, createLinkedAccount, addressBalanceWei,
-        provider, walletClient, publicClient, address, connect,
+        provider, walletClient, publicClient: publicClient as unknown as any, address, connect,
         subaccount, switchChain, currentChain, signerType, setSignerType: wrappedSetSignerType }}>
         {children}
       </CoinbaseContext.Provider>

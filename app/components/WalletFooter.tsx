@@ -51,11 +51,11 @@ export default function WalletFooter() {
             onClick={() => {
                 signSpendPermission({
                     allowance: toHex(parseEther(spendPermissionRequestedAllowance)),
-                    period: 86400, // seconds in a day
-                    start: Math.floor(Date.now() / 1000),
-                    end: Math.floor(Date.now() / 1000 + 30 * 24 * 60 * 60), // one month from now
+                    period: String(86400), // seconds in a day
+                    start: String(Math.floor(Date.now() / 1000)),
+                    end: String(Math.floor(Date.now() / 1000 + 30 * 24 * 60 * 60)), // one month from now
                     salt: '0x1',
-                    extraData: "0x" as Hex,
+                    extraData: "0x" as unknown as string,
                   })
             }}
             className="w-full px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { SPEND_PERMISSION_DOMAIN, SPEND_PERMISSION_MANAGER_ADDRESS, SPEND_PERMISSION_REQUESTED_ALLOWANCE, SPEND_PERMISSION_TOKEN, SPEND_PERMISSION_TYPES } from "../utils/constants";
-import { fromHex, PublicClient } from "viem";
+import { fromHex } from "viem";
 import { SpendPermission } from "../types";
 import { ProviderInterface } from "@coinbase/wallet-sdk";
 import { spendPermissionManagerAbi } from "../abi";
@@ -19,7 +19,7 @@ export default function useSpendPermission({
     provider: ProviderInterface | null;
     address: `0x${string}` | null;
     subaccount: `0x${string}` | null;
-    publicClient: PublicClient | null;
+    publicClient: any | null;
 }) {
     const [spendPermissionRequestedAllowance, setSpendPermissionRequestedAllowance] = useState<string>(`${SPEND_PERMISSION_REQUESTED_ALLOWANCE}`);
     const [spendPermission, setSpendPermission] = useState<SpendPermission | null>(null);
@@ -51,10 +51,10 @@ export default function useSpendPermission({
         salt: string;
         extraData: string;
       }) => {
-        if (!provider) return;
+        if (!provider) return '';
         const spendPermission = {
-          account: address,
-          spender: subaccount,
+          account: address as `0x${string}`,
+          spender: subaccount as `0x${string}`,
           token: SPEND_PERMISSION_TOKEN,
           allowance,
           period,
@@ -62,7 +62,7 @@ export default function useSpendPermission({
           end,
           salt,
           extraData
-        }
+        } as unknown as SpendPermission;
         
         const signature = await provider.request({
           method: 'eth_signTypedData_v4',
@@ -80,6 +80,7 @@ export default function useSpendPermission({
         setSpendPermissionSignature(signature as string);
         localStorage.setItem('cbsw-demo-spendPermissions', JSON.stringify(spendPermission));
         localStorage.setItem('cbsw-demo-spendPermissions-signature', signature as string);
+        return signature as string;
       }, [provider, address, subaccount]);
 
       const refreshPeriodSpend = useCallback(async () => {

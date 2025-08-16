@@ -1,5 +1,5 @@
 'use client'
-import { baseSepolia } from "viem/chains";
+import { base } from "viem/chains";
 import { useCoinbaseProvider } from "./CoinbaseProvider";
 import PostCard from "./components/PostCard";
 import Hero from "./components/Hero";
@@ -11,16 +11,17 @@ import toast, { Toaster } from 'react-hot-toast';
 import SettingsPanel from "./components/SettingsPanel";
 import { useMediaQuery } from 'react-responsive';
 import disperseFaucet from "./utils/faucet";
-let usePrivy: any = () => ({ login: () => {}, authenticated: false });
-try {
-  // Optional import to avoid build error if Privy app ID not configured
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  usePrivy = require('@privy-io/react-auth').usePrivy;
-} catch {}
+import { usePrivy } from '@privy-io/react-auth';
  
 export default function Home() {
   const { address, subaccount, fetchAddressBalance, publicClient, createLinkedAccount, addressBalanceWei, currentChain, switchChain, spendPermissionSignature, signSpendPermission, spendPermissionRequestedAllowance, signerType } = useCoinbaseProvider();
-  const { login, authenticated } = usePrivy();
+  let login: (() => void) | undefined;
+  let authenticated = false;
+  try {
+    const privy = usePrivy();
+    login = privy.login;
+    authenticated = privy.authenticated;
+  } catch {}
   const [posts, setPosts] = useState<Post[]>([]);
   const [isTipping, setIsTipping] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -60,7 +61,7 @@ export default function Home() {
           <Hero />
           {signerType === 'privy' && !authenticated && (
             <button 
-              onClick={() => login()}
+              onClick={() => login && login()}
               className="px-6 py-3 text-white rounded-lg hover:bg-indigo-700 transition-colors mb-3"
               style={{ backgroundColor: '#111827' }}
             >
@@ -82,14 +83,14 @@ export default function Home() {
           <Toaster position="top-right" />
           <Hero />
           <div className="text-lg text-gray-700 mb-4 text-center px-6">
-            It doesn&apos;t seem like you have any Base Sepolia ETH 🤔... <br/> Let&apos;s get you funded!
+            It doesn&apos;t seem like you have any Base ETH 🤔... <br/> Let&apos;s get you funded!
           </div>
           <button 
             onClick={async () => {
               setIsFaucetLoading(true);
               try {
                 const { hash } = await disperseFaucet({ to: address });
-                await publicClient.waitForTransactionReceipt({ hash });
+                await publicClient?.waitForTransactionReceipt({ hash });
                 await fetchAddressBalance();
               } catch (error) {
                 console.error('error dispersing faucet', error);
@@ -136,7 +137,7 @@ export default function Home() {
       );
     }
  
-    if (currentChain?.id !== baseSepolia.id) {
+    if (currentChain?.id !== base.id) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50">
           <Hero />
@@ -144,7 +145,7 @@ export default function Home() {
             onClick={() => switchChain()}
             className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
-            Switch to Base Sepolia
+            Switch to Base
           </button>
         </div>
       );
@@ -160,11 +161,11 @@ export default function Home() {
           <button 
             onClick={() => signSpendPermission({
               allowance: '0x71afd498d0000',// 0.002 ETH per day (~$5)
-              period: 86400, // seconds in a day
-              start: Math.floor(Date.now() / 1000), // unix timestamp
-              end: Math.floor(Date.now() / 1000 + 30 * 24 * 60 * 60), // one month from now
+              period: String(86400), // seconds in a day
+              start: String(Math.floor(Date.now() / 1000)), // unix timestamp
+              end: String(Math.floor(Date.now() / 1000 + 30 * 24 * 60 * 60)), // one month from now
               salt: '0x1',
-              extraData: "0x" as Hex,
+              extraData: "0x" as unknown as string,
             })}
             className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >

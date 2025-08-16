@@ -1,10 +1,10 @@
 import { parseEther } from "viem";
-import { baseSepolia } from "viem/chains";
+import { base } from "viem/chains";
 
 export const SPEND_PERMISSION_REQUESTED_ALLOWANCE = 0.002;
 export const SPEND_PERMISSION_REQUESTED_ALLOWANCE_WEI = parseEther(SPEND_PERMISSION_REQUESTED_ALLOWANCE.toString());
 export const SPEND_PERMISSION_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-export const SPEND_PERMISSION_MANAGER_ADDRESS = '0xf85210B21cC50302F477BA56686d2019dC9b67Ad';
+export const SPEND_PERMISSION_MANAGER_ADDRESS = process.env.NEXT_PUBLIC_SPEND_PERMISSION_MANAGER_ADDRESS || '0xf85210B21cC50302F477BA56686d2019dC9b67Ad';
 
 export const SPEND_PERMISSION_TYPES = {
     SpendPermission: [
@@ -23,6 +23,6 @@ export const SPEND_PERMISSION_TYPES = {
 export const SPEND_PERMISSION_DOMAIN = {
     name: 'Spend Permission Manager',
     version: "1",
-    chainId: baseSepolia.id,
+    chainId: base.id,
     verifyingContract: SPEND_PERMISSION_MANAGER_ADDRESS
   };

@@ -6,8 +6,9 @@ export async function getPrivyAccount(): Promise<Signer> {
     try {
         const data = typeof window !== 'undefined' ? localStorage.getItem('cbsw-demo-privy-signer') : null;
         if (!data) return { account: null };
-        const { address } = JSON.parse(data);
-        const provider: any = (typeof window !== 'undefined' ? (window as any).cbswPrivyProvider : null);
+        const { address } = JSON.parse(data) as { address: string };
+        const win = typeof window !== 'undefined' ? (window as unknown as Record<string, unknown>) : undefined;
+        const provider = win?.cbswPrivyProvider as { request: ({ method, params }: { method: string; params: unknown[] }) => Promise<unknown> } | undefined;
         if (!provider || !address) return { account: null };
         const account = toAccount({
             address: address as Hex,

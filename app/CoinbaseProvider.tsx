@@ -9,6 +9,7 @@ import { getTurnkeyAccount } from "./utils/turnkey";
 import { SPEND_PERMISSION_MANAGER_ADDRESS, SPEND_PERMISSION_TOKEN } from "./utils/constants";
 import useCoinbaseSDK from "./hooks/useCoinbaseSDK";
 import useSpendPermission from "./hooks/useSpendPermission";
+import { getPrivyAccount } from "./utils/privy";
 
 
 type CoinbaseContextType = {
@@ -113,6 +114,8 @@ const getSignerFunc = (signerType: SignerType): (() => Promise<Signer>) => {
     return getCryptoKeyAccount;
   } else if (signerType === 'turnkey') {
     return getTurnkeyAccount;
+  } else if (signerType === 'privy') {
+    return getPrivyAccount;
   }
   throw new Error('Invalid signer type');
 }
@@ -168,7 +171,7 @@ export function CoinbaseProvider({ children }: { children: React.ReactNode }) {
             let signer;
             if (signerType === 'browser') {
               signer = signerAccount.account?.publicKey;
-            } else if (signerType === 'turnkey') {
+            } else if (signerType === 'turnkey' || signerType === 'privy') {
               signer = signerAccount.account?.address;
             }
             setActiveSigner(signer as Hex);

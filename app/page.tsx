@@ -11,7 +11,12 @@ import toast, { Toaster } from 'react-hot-toast';
 import SettingsPanel from "./components/SettingsPanel";
 import { useMediaQuery } from 'react-responsive';
 import disperseFaucet from "./utils/faucet";
-import { usePrivy } from '@privy-io/react-auth';
+let usePrivy: any = () => ({ login: () => {}, authenticated: false });
+try {
+  // Optional import to avoid build error if Privy app ID not configured
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  usePrivy = require('@privy-io/react-auth').usePrivy;
+} catch {}
  
 export default function Home() {
   const { address, subaccount, fetchAddressBalance, publicClient, createLinkedAccount, addressBalanceWei, currentChain, switchChain, spendPermissionSignature, signSpendPermission, spendPermissionRequestedAllowance, signerType } = useCoinbaseProvider();
